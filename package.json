@@ -1,0 +1,18 @@
+{
+  "name": "aps-viewer-demo",
+  "version": "1.0.0",
+  "description": "APS Viewer Demo with Filter Plugin",
+  "scripts": {
+  "dev": "concurrently -n viewer,filter,frontend \"npm run dev:viewer\" \"npm run dev:filter\" \"npm run dev:frontend\"",
+
+  "dev:viewer": "nodemon viewerServer/server.js",
+  "dev:filter": "nodemon filterPlugin/server.js",
+  "dev:frontend": "npm run dev --prefix frontend-react",
+
+  "install:all": "npm install && npm install --prefix viewerServer && npm install --prefix filterPlugin && npm install --prefix frontend-react"
+},
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.10"
+  }
+}

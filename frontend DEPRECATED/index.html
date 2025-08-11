@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/style.css">
+    <link rel="stylesheet" href="/main.css">
+    <title>APS Model Viewer</title>
+</head>
+
+<body>
+    <div id="header">
+        <div class="logo-container">
+            <img src="resources/AiDigits_logo.png" alt="AiDigits Logo" id="logo">
+        </div>
+        <span class="title">Model Viewer</span>
+
+        <div class="model-actions">
+            <select name="models" id="models"></select>
+            <button id="upload" title="Upload New Model">Upload</button>
+            <input style="display: none" type="file" id="input">
+        </div>
+
+    </div>
+
+    <div id="preview"></div>
+    <div id="overlay"></div>
+
+    <!-- Vertical Toolbar
+    <div id="verticalToolbar" class="vertical-toolbar">
+        <button id="queryBtn" class="toolbar-btn" title="Query Builder">
+            <span>Query</span>
+        </button>
+        <button id="savedQueriesBtn" class="toolbar-btn" title="Saved Queries">
+            <span>Saved</span>
+        </button>
+    </div> -->
+
+    <!-- Main Query Builder Popup (shows current queries) -->
+    <div id="queryBuilderPopup" class="popup-overlay hidden">
+        <div class="popup-content">
+            <div class="popup-header">
+                <h3>Query Manager</h3>
+                <span id="closeQueryPopup" class="close">&times;</span>
+            </div>
+            <div class="popup-body">
+                <div class="query-manager-actions">
+                    <button id="addQueryBtn" class="btn btn-primary">+ Add Query</button>
+                    <button id="exportQueriesBtn" class="btn btn-secondary">📤 Export</button>
+                </div>
+                <div id="currentQueriesContainer" class="current-queries">
+                    <!-- Current queries will be displayed here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Query Popup (for creating new queries) -->
+    <div id="addQueryPopup" class="popup-overlay hidden">
+        <div class="popup-content">
+            <div class="popup-header">
+                <h3>Add New Query</h3>
+                <span id="closeAddQueryPopup" class="close">&times;</span>
+            </div>
+            <div class="popup-body">
+                <div class="add-query-actions">
+                    <button id="importCsvBtn" class="btn btn-secondary">📁 Import CSV</button>
+                    <button id="loadSavedQueryBtn" class="btn btn-secondary">💾 Load Saved</button>
+                </div>
+                <div id="addQueryContainer" class="query-builder">
+                    <!-- Query building interface will be added here -->
+                </div>
+                <div class="popup-footer">
+                    <button id="cancelAddQueryBtn" class="btn btn-secondary">Cancel</button>
+                    <button id="confirmAddQueryBtn" class="btn btn-primary">Add Query</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/viewer3D.js"></script>
+    <script src="/main.js" type="module"></script>
+</body>
+
+</html>
