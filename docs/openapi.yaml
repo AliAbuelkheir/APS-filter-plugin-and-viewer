@@ -1,0 +1,187 @@
+openapi: 3.0.3
+info:
+  title: Filter Plugin API
+  version: 1.0.0
+  description: API for querying APS model data and managing saved queries used by the React frontend.
+servers:
+  - url: http://localhost:8082
+paths:
+  /api/status:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+  /api/init/setup:
+    post:
+      summary: Initialize model data for querying
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [urn, guid]
+              properties:
+                urn:
+                  type: string
+                guid:
+                  type: string
+      responses:
+        '200':
+          description: Initialization result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string }
+                  data:
+                    type: object
+                    properties:
+                      urn: { type: string }
+                      guid: { type: string }
+                      itemCount: { type: integer }
+                      categories:
+                        type: array
+                        items: { type: string }
+                      usingFallback: { type: boolean }
+        '400': { description: Bad request }
+        '500': { description: Server error }
+  /api/query:
+    post:
+      summary: Execute an ad-hoc query
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/LogicalQuery'
+                - $ref: '#/components/schemas/SingleConditionQuery'
+      responses:
+        '200':
+          description: Query execution result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  dbIds:
+                    type: array
+                    items: { type: string }
+                  count: { type: integer }
+                  message: { type: string }
+        '500': { description: Query execution error }
+  /api/query/categories:
+    get:
+      summary: Get available property categories and fields
+      responses:
+        '200':
+          description: Categories response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items: { type: string }
+  /api/query/saved:
+    get:
+      summary: List saved queries
+      responses:
+        '200': { description: Saved queries list }
+    post:
+      summary: Save a new query definition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, name, query]
+              properties:
+                id: { type: string }
+                name: { type: string }
+                query: { $ref: '#/components/schemas/LogicalQuery' }
+                createdBy: { type: string }
+      responses:
+        '201': { description: Created }
+        '400': { description: Validation error }
+  /api/query/saved/{id}:
+    get:
+      summary: Get a saved query by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Saved query }
+        '404': { description: Not found }
+    put:
+      summary: Update a saved query
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200': { description: Updated }
+        '400': { description: Update error }
+    delete:
+      summary: Delete a saved query
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Deleted }
+        '404': { description: Not found }
+components:
+  schemas:
+    Condition:
+      type: object
+      required: [category, field, operator, value]
+      properties:
+        category: { type: string }
+        field: { type: string }
+        operator:
+          type: string
+          enum: [contains, does_not_contain, starts_with, equals, greater_than, less_than, greater_than_or_equal, less_than_or_equal]
+        value: { type: string }
+    LogicalQuery:
+      type: object
+      required: [logic, conditions]
+      properties:
+        logic:
+          type: string
+          enum: [AND, OR]
+        conditions:
+          type: array
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/Condition'
+              - $ref: '#/components/schemas/LogicalQuery'
+    SingleConditionQuery:
+      type: object
+      required: [conditions]
+      properties:
+        conditions:
+          oneOf:
+            - $ref: '#/components/schemas/Condition'
+            - type: array
+              items: { $ref: '#/components/schemas/Condition' }
