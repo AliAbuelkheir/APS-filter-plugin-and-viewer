@@ -4,25 +4,20 @@
 This document explains the integration between the React frontend (`frontend-react`) and the Filter Plugin backend (`filterPlugin`, port 8082) which queries Autodesk Platform Services (APS) model derivative data. It covers architecture, data flow, available API endpoints, query execution lifecycle, local development workflow, and operational notes. Secret values are intentionally omitted.
 
 ## High-Level Architecture
-```
-+------------------+          +----------------------+          +------------------------------+
-| React Frontend   |  HTTP    | Filter Plugin API    |  HTTPS   | Autodesk Platform Services  |
-| (Vite Dev:5173)  +--------->+ (Express :8082)      +--------->+ Model Derivative / Auth     |
-|                  |          |                      |          | (Token via viewerServer)    |
-+---------+--------+          +----------+-----------+          +---------------+--------------+
-          ^                              |                                     |
-          |                              | MongoDB (Saved Queries)             |
-          |                              v                                     |
-          |                    In‑Memory Model Property Cache                  |
-          |                              ^                                     |
-          +------------------------------+-------------------------------------+
-```
+
+![High-Level Architecture Diagram](diagrams/highlevel-architecture-diagram.svg)
+
 - The frontend loads a model through the separate `viewerServer` (port 8081) which supplies APS tokens and translation/status endpoints.
 - Once the viewer finishes geometry load, the frontend captures the active viewable GUID and calls `POST /api/init/setup` on the Filter Plugin providing the model URN + GUID.
 - The Filter Plugin fetches model property data from APS (or falls back to static test data) and builds a category->fields map kept in memory for fast querying.
-- Ad‑hoc and saved queries operate only on the cached in‑memory structure (no round‑trip to APS per query).
+- Ad-hoc and saved queries operate only on the cached in-memory structure (no round-trip to APS per query).
+
+---
 
 ## Data Flow (Setup + Query)
+
+![Setup Sequence Diagram](diagrams/setup-sequence-diagram.svg)
+
 1. User selects / loads a translated model in the viewer.
 2. Viewer fires GEOMETRY_LOADED; frontend obtains current viewable `guid` from the viewer instance and has the `urn` (kept globally as `window.currentModelUrn`).
 3. Frontend calls `POST http://localhost:8082/api/init/setup { urn, guid }`.
@@ -37,49 +32,24 @@ This document explains the integration between the React frontend (`frontend-rea
 7. Frontend sends POST `/api/query` with one of:
    - Single condition shortcut `{ "conditions": { ...condition... } }`
    - Logical group `{ "logic": "AND" | "OR", "conditions": [condition|group,...] }`
+   - More details in Query.md
 8. Backend evaluates conditions against cached `modelData` producing matching `externalId` values (returned as `dbIds` field for now). No additional APS calls.
 9. Frontend maps returned externalIds to viewer dbIds (via viewer APIs) for isolation / highlighting.
+
+---
 
 ## API Surface Summary
 See `docs/openapi.yaml` (OpenAPI 3.0) for machine-readable detail. Key endpoints:
 - `GET /api/status` – health check.
 - `POST /api/init/setup` – load and cache model property data; must be called once per (URN, GUID) before querying.
 - `GET /api/query/categories` – returns `{ category: [fields...] }` map built during setup.
-- `POST /api/query` – execute an ad‑hoc query (single or nested logical).
+- `POST /api/query` – execute an ad-hoc query (single or nested logical).
 - Saved Query CRUD:
   - `GET /api/query/saved`
   - `POST /api/query/saved` (body: id, name, query, createdBy?)
   - `GET /api/query/saved/:id`
   - `PUT /api/query/saved/:id`
   - `DELETE /api/query/saved/:id`
-
-(An unused `/api/query/initialize` route exists referencing an `init(urn)` call that is not implemented; prefer `/api/init/setup`).
-
-## Query Object Formats
-Backend accepts two canonical JSON shapes:
-1. Single Condition Shortcut:
-```
-{
-  "conditions": { "category": "Dimensions", "field": "Area", "operator": "greater_than", "value": "10" }
-}
-```
-2. Logical Group (can be nested):
-```
-{
-  "logic": "AND",
-  "conditions": [
-    { "category": "Constraints", "field": "Level", "operator": "contains", "value": "Level 1" },
-    {
-      "logic": "OR",
-      "conditions": [
-        { "category": "Dimensions", "field": "Area", "operator": "greater_than", "value": "20" },
-        { "category": "Dimensions", "field": "Volume", "operator": "less_than", "value": "5" }
-      ]
-    }
-  ]
-}
-```
-Supported operators: contains, does_not_contain, starts_with, equals, greater_than, less_than, greater_than_or_equal, less_than_or_equal. Numeric comparisons attempt `parseFloat` conversion on both sides; otherwise string normalization is lowercase comparison.
 
 ## Evaluation Logic (Server)
 - Entire property cache is scanned per condition (linear). Nested groups recurse.
@@ -90,7 +60,6 @@ Supported operators: contains, does_not_contain, starts_with, equals, greater_th
 Potential enhancement ideas:
 - Pre-index frequently used category/field pairs.
 - Add server-side paging or a limit on returned ids.
-- Support NOT / parentheses with explicit unary operator.
 
 ## Fallback / Test Data Mode
 If `process.env.USE_TEST_DATA === 'true'` or APS property retrieval yields a 404, service loads `FakeModelData` (15 fabricated objects) and synthesizes categories. Response includes `usingFallback: true` in that case.
@@ -129,10 +98,16 @@ POST /api/query
 ```
 
 ## Environment Variables (Omitted Values)
-Add these to a local `.env` (not committed):
+Add these to a local `filterplugin/.env` (not committed):
 - APS_CLIENT_ID, APS_CLIENT_SECRET (for token retrieval in authService)
 - USE_TEST_DATA=true (optional for offline/demo)
 - MONGODB_URI (if different from default)
+
+Add these to a local `viewerServer/.env` (not committed):
+- APS_CLIENT_ID, APS_CLIENT_SECRET (for token retrieval in authService)
+- PORT
+- APS_BUCKET
+
 
 ## Error Handling & Edge Cases
 - Missing urn/guid => 400 on setup.
@@ -150,7 +125,6 @@ Add these to a local `.env` (not committed):
 Source diagrams can be added (e.g., `diagrams/architecture.drawio` + exported `architecture.png`). Current ASCII diagram above; consider future sequence diagram for Setup + Query.
 
 ## Known Gaps / Future Improvements
-- Clarify `/api/query/initialize` deprecated route; remove or implement.
 - Add pagination / limit + optional properties projection.
 - Provide endpoint to list distinct values for a given category.field to assist UI.
 - Add auth (currently open CORS in dev) for saved query management.
@@ -168,5 +142,3 @@ Source diagrams can be added (e.g., `diagrams/architecture.drawio` + exported `a
 | Update Query | PUT /api/query/saved/:id |
 | Delete Query | DELETE /api/query/saved/:id |
 
----
-Generated automatically; edit freely for clarifications.

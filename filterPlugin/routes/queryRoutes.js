@@ -4,38 +4,6 @@ const queryService = require('../services/queryService');
 const savedQueryService = require('../services/savedQueryService');
 const modelDataService = require('../services/modelDataService');
 
-
-// Model initialization endpoint
-router.post('/initialize', async (req, res) => {
-  try {
-    const { urn } = req.body;
-    
-    // Validate URN
-    if (!urn) {
-      return res.status(400).json({
-        success: false,
-        error: 'Model URN is required'
-      });
-    }
-    
-    console.log(`Initializing model with URN: ${urn}`);
-    
-    // Call the init function with the provided URN
-    await init(urn);
-    
-    return res.json({
-      success: true,
-      message: `Model with URN ${urn} initialized successfully`
-    });
-  } catch (error) {
-    console.error('Failed to initialize model:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to initialize model'
-    });
-  }
-});
-
 // Get all saved queries
 router.get('/saved', async (req, res) => {
     try {
