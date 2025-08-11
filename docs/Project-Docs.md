@@ -5,7 +5,7 @@ This document explains the integration between the React frontend (`frontend-rea
 
 ## High-Level Architecture
 
-![High-Level Architecture Diagram](diagrams/highlevel-architecture-diagram.svg)
+![High-Level Architecture Diagram](diagrams/highlevel-architecture-diagram.png)
 
 - The frontend loads a model through the separate `viewerServer` (port 8081) which supplies APS tokens and translation/status endpoints.
 - Once the viewer finishes geometry load, the frontend captures the active viewable GUID and calls `POST /api/init/setup` on the Filter Plugin providing the model URN + GUID.
@@ -16,7 +16,7 @@ This document explains the integration between the React frontend (`frontend-rea
 
 ## Data Flow (Setup + Query)
 
-![Setup Sequence Diagram](diagrams/setup-sequence-diagram.svg)
+![Setup Sequence Diagram](diagrams/setup-sequence-diagram.png)
 
 1. User selects / loads a translated model in the viewer.
 2. Viewer fires GEOMETRY_LOADED; frontend obtains current viewable `guid` from the viewer instance and has the `urn` (kept globally as `window.currentModelUrn`).
